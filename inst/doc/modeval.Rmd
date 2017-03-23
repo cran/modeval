@@ -1,0 +1,261 @@
+---
+title: "An introduction to the 'modeval' package"
+author: "Younggun You, Eric Stickney"
+date: "March 21, 2017"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{An introduction to the modeval package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+Package **modeval** is designed to assist novice to intermediate analysts in choosing an optimal classification model, particularly for working with relatively small data sets. It provides cross-validated results comparing several different models at once using a consistent set of performance metrics, so users can hone in on the most promising approach rather than attempting single model fittings at a time. The package pre-defined 12 most common classification models, although users are free to select from the 200+ other options available in [caret](http://topepo.github.io/caret/available-models.html) package. In total, these models have been proven to address a wide range of classification challenges. Pre-defined models are as follows:
+
+####Linear 
+* Generalized Linear Model (glm)
+* Linear Discriminant Analysis (lda)
+* Bayesian functions for generalized linear modeling (bayesglm)
+
+####Nonlinear 
+* K-nearest Neighbors (knn)
+* Neural Networks (nnet)
+* Quadratic Discriminant Analysis (qda)
+
+####Support Vector Machines
+* Support Vector Machines with Linear Kernel  (svmLinear)
+* Support Vector Machines with Radial Basis Function Kernel (svmRadial)
+* Support Vector Machines with Class Weights (svmRadialWeights)
+
+####Tree-based 
+* Random Forests (rf)
+* CART (rpart)
+* Bagged CART (treebag)
+
+
+##Motivation
+
+There are many different modeling options in R and each has particular syntax for model training and/or prediction. At the same time, model fit structures are also different, so it is challenging to consolidate results and efficiently compare performance between models. The **caret** package provides a uniform interface for more than 200 regression and classification models; **modeval** was largely built on that platform, and is intended to be an easier, simpler entry into solving classification problems.
+
+Presented with a classification problem, one of the first questions facing an analyst is, *what kinds of models should I try?* With hundreds of options available, it is daunting to work through enough models and confidently pick the one that best suits a particular dataset and classification objective. So, analysts tend to rely on models that are familiar and easy to use, which may not necessarily yield the best possible result. **modeval** automates model evaluation and enables comparison of performance with minimal user manipulation.
+
+Analysts may also enter into classification model fitting with assumptions of data normality and class balance, which can each threaten their ability to achieve a good result. This package includes automated checks and recommendations for transforming and subsampling data to address issues of non-normality and class imbalance, respectively. 
+
+
+##Capabilities
+
+Following are some of the key features of **modeval**:
+
+* Evaluate the normality of the predictor variables by calculating skew and kurtosis. The user is provided guidance regarding whether data tranformation is advised, and how well each of three tranformation options (Box-Cox, Yeo-Johnson, or PCA) does in reducing non-normality as compared to each other and the original, untransformed data set. Users can also compare the goodness of model fits based on transformed and untransformed data.
+* Check required packages and automatically install needed packages.
+* Check whether each function supports a two-class classification problem and _ignore_ it if it doesn't support it.
+* Check if each function supports class probability and exclude it from performance comparision if it doesn't support it.
+* Functions supporting class probability also produce accuracy and Kappa metrics alongside Area Under the Curve (AUC). We can compare performance of those models that don't support class probability.
+* Determine if each function supports a function to evaluate variable importance and exclude it from variable importance comparision if it doesn't.
+* Provide the user with several subsampling options to address issues of class imbalance. Options include down-sampling, up-sampling, SMOTE, and ROSE, which are described below as parameters in function `add_model`.
+
+
+## Examples
+
+Below, several brief examples are included to demonstrate the workflow and general utility of **modeval**.
+
+
+### Prepare or import dataset
+Here we draw a sample from a data set called "PimaIndiansDiabetes," which is embedded in R package [mlbench](https://CRAN.R-project.org/package=mlbench) and can also be downloaded from the University of California-Irvine's [Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/Pima+Indians+Diabetes). Included are 8 predictor variables referencing various health characteristics and one outcome class variable indicating either a positive or negative test for diabetes.
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(modeval)
+library(mlbench)
+data(PimaIndiansDiabetes)
+index <- sample(seq_len(nrow(PimaIndiansDiabetes)), 500)
+trainingSet <- PimaIndiansDiabetes[index, ]
+testSet <- PimaIndiansDiabetes[-index, ]
+x <- trainingSet[, -9]
+y <- trainingSet[, 9]
+x_test <- testSet[, -9]
+y_test <- testSet[, 9]
+```
+
+
+### Function `suggest_transformation`
+
+One of the first things an analyst will want to do is inspect the data set to understand the characteristics of all the variables, including the distributions of the predictor variables and the prevalence of each class outcome.
+
+Two common challenges with classifcation problems are: (1) significant non-normality in one or more variables, and (2) class imbalance. **modeval** not only automates checking for both issues, but also guides the user to select a remedy, if appropriate.
+
+In the example below, we use the `suggest_tranformation` function to check for non-normality (skew and kurtosis), and view the results of applying three data transformations. (Options for addressing class imbalance are presented within function `add_model`, specifically the *sampling* parameter.)
+```{r, fig.width=6.5, fig.height=5}
+suggest_transformation(x)
+```
+
+Four plots are generated, each displaying the skewness (x-axis) and kurtosis (y-axis) of the predictor variables. The first plot presents the untransformed data, while the others demonstrate the impact on skew and kurtosis of applying three well-established tranformation approaches. Each is labled with a tag that can be applied in the `add_model` function described below, should the user wish to use one of the tranformations. The four plots:
+
+* The untransformed data set.
+* *tf1* applies a Box-Cox transformation, which shifts the distribution to be more Gaussian.
+* *tf2* applies a Yeo-Johnson transformation, which is similar to Box-Cox but supports raw values that can be zero or negative.
+* *tf3* applies a Principal Components tranformation to ensure that variables are uncorrelated.
+
+Skew and kurtosis values of >2 and <-2 are generally considered problematic, and each plot helps the user visually inspect the extent to which variables are outside those values, and thus transformation may be useful. First, a shaded square between -2 and +2 is presented. And second, variable points are colored red, blue, or purple if skew, kurtosis, or both are outside the boundaries, respectively.
+
+In the above example, we see that all three transformation options reduce skew and kurtosis but only *tf2* (Yeo-Johnson) gets all variables inside the desired boundaries.
+
+
+### Function `add_model`
+
+With `add_model`, users can conduct model training and add each model fit to the summary list. The function will check that the model and data supports classification. If model supports class probability, then the best model is choosen based on AUC. If model doesnt support class probabilities, the best model is choosen based on accuracy. Ten-fold cross validation is used by default.
+
+In the example below, we specify four models. Although **modeval** supports 12 models, the user can use additional models if they choose, as long as they are supported in [caret](http://topepo.github.io/caret/available-models.html). Here, one of those non-native models, `qrnn`, is excluded from training because it only applicable to regression models, and the other, `rpartScore` will only produce Accuracy and Kappa metrics as it doesn't support class probability prediction.
+
+*sSummary* is a list of model fits and each model fit is named. The code below allows us to see the current contents of `sSummary` as defined above.
+```{r, results='hide', message=FALSE, warning=FALSE}
+sSummary <- list() # empty list where we store model fit results
+models = c("glm", "qrnn", "lda", "rpartScore") # create a character vector with function names
+sSummary <- add_model(sSummary, x, y, models)
+```
+
+```{r}
+## 
+##  Model:  rpartScore 
+##  >> Accuracy and Kappa metrics are available. 
+##  >> Best model is selected based on accuracy. 
+## 
+##  
+##  Model:  glm, lda 
+##  >> ROC, Sens, Spec, Accuracy and Kappa metrics are available. 
+##  >> Best model is selected based on AUC. 
+## 
+##  
+##  Model:  qrnn 
+##  >> Model(s) not support classification problem.
+## 
+```
+
+```{r}
+names(sSummary)
+```
+
+
+#### Arguments in `add_model`
+* **addTo** - Summary list that will contain all model fit results. In our examples we use *sSummary*
+* **model** - A vector of model names to train.
+* **x and y** - A dataframe of input and output variables, respectively.
+* **tuneLength** - The maximum number of tuning parameter combinations as generated by random search. Default = 5L.
+* **modelTag** - A charactor value of tag that to be added to model name. Default = NULL.
+* **tf** - A single charactor value for transformation options (see `suggest_transformation`). Default = NULL.
+* **sampling** - A single character value to pass caret::trainControl. This handles subsampling, which can be desirable in cases of class imbalance. Default = NULL, which is the same as "none". Values are as follows:
+    + "none" (No subsampling conducted)
+    + "down" (Down-sampling to randomly subset all classes such that class frequencies match the least prevalent class)
+    + "up" (Up-sampling to randomly sample (with replacement) the least prevalent class such that it becomes the same size as the majority class)
+    + "smote" (Generating new observations by randomly selecting points on the line connecting the rare class observation to one of its nearest neighbors in the feature space)
+    + "rose" (A smoothed bootstrapping approach that generates new samples from the feature space around the rare class observation)
+
+Note that SMOTE and ROSE require the **DMwR** and **ROSE** packages, respectively. 
+
+
+#### Further Examples
+
+Adding more models is easy. Simply run the `add_model` function. Here are a few examples:
+```{r, results='hide', message=FALSE, warning=FALSE}
+sSummary <- add_model(sSummary, x, y, c("knn", "nnet", "qda"), modelTag = "Nonlinear", tf="tf2")
+sSummary <- add_model(sSummary, x, y, c("rf", "rpart", "treebag"), modelTag = "TreeBased", sampling = "down")
+sSummary <- add_model(sSummary, x, y, c("svmLinear", "svmRadial", "svmPoly"), modelTag = "svmFamily")
+```
+
+```{r}
+names(sSummary)
+```
+
+In this case, we notice that each model fit is labeled "modelname_modelTag." The _modelTag_ will be useful when we want to visualize results by the four main categories provided in this package (linear, nonlinear, tree-based, support vector machines).
+
+
+
+### Evaluate results with functions `suggest_auc` and `suggest_accuracy`
+
+Users can easily visualize performance with a single line of code and have the option of viewing average training time for a single tuning. Options with and without time are presented below.
+```{r, fig.width=6.5, fig.height=4}
+suggest_auc(sSummary)
+suggest_auc(sSummary, time = TRUE)
+```
+
+If a user wishes to select specific models to compare, they can leverage _modelTag_. Once _modelTag_ is added, it only includes the model fits that includes _modelTag_ in the name.
+```{r, fig.width=6.5, fig.height=4}
+suggest_auc(sSummary, time = TRUE, "TreeBased")
+```
+
+Users can also indicate model names to _grep_ the models for comparison. The following code grabs any model fits that include "glm" or "Tree."
+```{r, fig.width=6.5, fig.height=4}
+suggest_auc(sSummary, time = TRUE, "glm|Tree")
+```
+
+Users interested in visualizing accuracy and Kappa metrics can use the function `suggest_accuracy`, which uses the same syntax and arguments as `suggest_auc` above. As with `suggest_auc`, time=TRUE will generate a training time chart. Here's an example:
+
+```{r, fig.width=6.5, fig.height=4}
+suggest_accuracy(sSummary, "glm|Tree")
+```
+
+
+### Identify best-performing categories with `suggest_category`
+
+With this function, users can get better understanding of caracteristics of each prediction model family. Users may also want to use _modelTag_ to limit visualization to certain models. Example: 
+```{r, fig.width=6.5, fig.height=4}
+suggest_category(sSummary, "nnet|knn|rf")
+```
+
+
+### Explore variable performance with function `suggest_variable`
+
+Some classification and regression models produce variable and importance indices based on their own algorithms. Weights and priorities are not always comparable across different model types, so average or median value from differnet models is not always useful and may be misleading. However, observing and comparing variable importance results can be very useful because we can check which variables are consistantly important across different models and which aren't. This helps the analyst develop a deeper level of understanding of the caracteristic of each model and the problem itself. Users may wish to use _tag_ to extract the models for comparison.
+
+```{r, fig.width=6.5, fig.height=4}
+suggest_variable(sSummary)
+suggest_variable(sSummary, "TreeBased")
+```
+
+
+
+## Compare performance with class probability
+
+### Add prediction function with test dataset using function `add_prob`
+
+To be able to use functions `suggest_probPop`, `suggest_probCut` and `suggest_gain`, users will need to add prediction functions with the test dataset suing the `add_prob` function. Using our sample data set, class probability predictions of a positive diabetes test ("pos") are generated using x_test and y_test.
+
+```{r}
+sSummary <- add_prob(sSummary, x_test, y_test, "pos")
+```
+
+
+### Explore population distribution and probability cuts with functions `suggest_variable` and `suggest_probCut`
+
+While AUC demonstrates overall performance, sometimes analysts will be more interested in a specific area. By observing density distribution by population and by probability cut-off, we can more clearly understand each model's predictive performance as well as similarities and differences between models.
+
+```{r, fig.width=6.5, fig.height=4}
+suggest_probPop(sSummary, "pos")
+suggest_probPop(sSummary, "pos", modelTag = "Tree")
+
+suggest_probCut(sSummary, "pos")
+suggest_probCut(sSummary, "pos", modelTag = "Tree")
+
+```
+
+
+### Visualize Gain and Lift with Function `suggest_gain`
+
+Gain and Lift charts are widely used for marketing purposes. They indicate the effectiveness of predictive models compared to the results obtained without the predictive model. With **modeval**, users can create Gain, Lift, Accumulated Event Percent, and Event Percent for each population bucket.
+
+```{r, message=FALSE, warning=FALSE, fig.width=6.5, fig.height=4}
+suggest_gain(sSummary, "pos", modelTag = "Tree")
+suggest_gain(sSummary, "pos", type = "Gain")
+suggest_gain(sSummary, "pos", type = "Lift")
+suggest_gain(sSummary, "pos", type = "PctAcc")
+suggest_gain(sSummary, "pos", type = "Pct")
+suggest_gain(sSummary, "pos", type = "Gain", modelTag = "Tree")
+
+```
+
+When single plots are created using the "type" argument, users can adjust the plot by adding **ggplot2** syntax. In this example, we adjust the x-axis limit. 
+
+```{r, message=FALSE, warning=FALSE, fig.width=6.5, fig.height=4}
+suggest_gain(sSummary, "pos", type = "Gain") + xlim(0, 0.5)
+
+```
