@@ -152,12 +152,6 @@ add_model <- function(addTo, x, y, model = NULL, tuneLength = 5L, modelTag = NUL
                     )
   }
 
-
-  cat("\n Consider transforming data if skew or kurtosis of any variable is > 2 or < -2 \n")
-  cat("\n Box-Cox     : The distribution of an attribute can be shifted to reduce the skew and make it more Gaussian. \n")
-  cat("\n Yeo-Johnson : Similar to Box-Cox but it supports raw values that are equal to zero and negative. \n")
-  cat("\n PCA         : Transform the data to the principal components. \n")
-
   modelTag <- stringr::str_c(tf, modelTag, sep = "_")
 
   # combine caret::defaultSummary and caret::twoClasssummary into one
@@ -514,14 +508,14 @@ suggest_accuracy <- function(addTo, modelTag = NULL, time = FALSE) {
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy), y = TimeSingle)) +
+    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = TimeSingle)) +
       geom_bar(stat = "identity", alpha = 0.8) +
       xlab("") + ylab("") +
       ggtitle("Time/Tuning (min)") +
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    # time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy), y = TimeTotal)) +
+    # time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = TimeTotal)) +
     #   geom_bar(stat = "identity", alpha = 0.8) +
     #   xlab("") + ylab("") +
     #   ggtitle("Time Total (min)") +
@@ -627,14 +621,14 @@ suggest_auc <- function(addTo, modelTag = NULL, time = FALSE) {
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC), y = TimeSingle)) +
+    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = TimeSingle)) +
       geom_bar(stat = "identity", alpha = 0.8) +
       xlab("") + ylab("") +
       ggtitle("Time/Tuning (min)") +
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC), y = TimeTotal)) +
+    time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = TimeTotal)) +
       geom_bar(stat = "identity", alpha = 0.8) +
       xlab("") + ylab("") +
       ggtitle("Time Total (min)") +

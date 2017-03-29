@@ -1,10 +1,10 @@
-65f97034c353cc486a67dcba42cdcff6 *DESCRIPTION
+7b7fb1944db64850d55eab59c64dd03f *DESCRIPTION
 29de20adce919acaa9713bc0159aa13b *NAMESPACE
-705d71607894143e22ea3f5d7ee5543a *R/code.R
+153df708287e86d7c272a3bf8e9d3dd6 *R/code.R
 cbd06f076c41f1f7f12b1659c934ad97 *build/vignette.rds
 23b8bd74ae65e1cba5bb34d706089ffc *inst/doc/modeval.R
 e0db5b5325b117f5481f78ca813c94a6 *inst/doc/modeval.Rmd
-8cf177d07b18df493bf35c77b3b41f72 *inst/doc/modeval.html
+48ee0ddc772eac27c7c0ce3d043b4d6b *inst/doc/modeval.html
 457e39b24f0fe36b0eafb23782c78368 *man/add_model.Rd
 23c5afa8d00df2d6ed2ac4801f19b85f *man/add_prob.Rd
 8cf988059ad134347c7ef7fd12e4ab6f *man/suggest_accuracy.Rd
