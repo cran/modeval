@@ -94,7 +94,6 @@
 #' # vignette("modeval") #check a vignette for further details
 #' }
 add_model <- function(addTo, x, y, model = NULL, tuneLength = 5L, modelTag = NULL, tf = NULL, sampling = NULL) {
-  ##### Created by both eric13 and younggun
   
   `.` <- NULL # for CMD check pass
   
@@ -298,8 +297,6 @@ add_model <- function(addTo, x, y, model = NULL, tuneLength = 5L, modelTag = NUL
 #' # vignette("modeval") #check a vignette for further details
 #' }
 add_prob <- function(addTo, x, y, outChar, predTag = NULL) {
-  ##### created by younggun
-
   # input argument control
   stopifnot(purrr::is_list(addTo), is.data.frame(x) && !is.null(n <- nrow(x)),
             !is.matrix(y) && purrr::is_vector(y) && NCOL(y) == 1 && NROW(y) == NROW(y),
@@ -382,8 +379,6 @@ add_prob <- function(addTo, x, y, outChar, predTag = NULL) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_transformation <- function(x) {
-  ##### created by eric13, modified by younggun
-  
   kurtosis <- skew <- varNames <- NULL # for CMD check pass
   
   x <- x[, purrr::map_lgl(x, is.numeric)]
@@ -461,8 +456,6 @@ suggest_transformation <- function(x) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_accuracy <- function(addTo, modelTag = NULL, time = FALSE) {
-  ##### created by younggun
- 
    `.` <- Model <- Accuracy <- Kappa <- Time <- TuneLength <- TimeSingle <- TimeTotal <- NULL #for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -490,11 +483,6 @@ suggest_accuracy <- function(addTo, modelTag = NULL, time = FALSE) {
       dplyr::mutate(TimeSingle = Time / 60 / TuneLength) %>%
       dplyr::mutate(TimeTotal = Time / 60)
 
-    timeAccbyModel <- tableAcc %>% dplyr::group_by(Model) %>%
-      dplyr::summarize(Time = mean(Time), Accuracy = mean(Accuracy, na.rm = TRUE),
-                       TimeSingle = mean(TimeSingle), TimeTotal = mean(TimeTotal)
-                       )
-
     perf_Acc <- ggplot(data = tableAcc, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = Accuracy)) +
       geom_boxplot(alpha = 0.8) +
       xlab("") + ylab("") +
@@ -508,19 +496,12 @@ suggest_accuracy <- function(addTo, modelTag = NULL, time = FALSE) {
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = TimeSingle)) +
+    time_sig <- ggplot(data = tableAcc, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = TimeSingle)) +
       geom_bar(stat = "identity", alpha = 0.8) +
       xlab("") + ylab("") +
       ggtitle("Time/Tuning (min)") +
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
-
-    # time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, Accuracy, FUN = stats::median), y = TimeTotal)) +
-    #   geom_bar(stat = "identity", alpha = 0.8) +
-    #   xlab("") + ylab("") +
-    #   ggtitle("Time Total (min)") +
-    #   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-    #   coord_flip()
 
     if (time) {
       layout <- rbind(c(1, 1, 2))
@@ -566,8 +547,6 @@ suggest_accuracy <- function(addTo, modelTag = NULL, time = FALSE) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_auc <- function(addTo, modelTag = NULL, time = FALSE) {
-  ##### created by younggun
-
   `.` <- Time <- TuneLength <- Model <- ROC <- TimeSingle <- TimeTotal <- Sens <- Spec <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -596,11 +575,6 @@ suggest_auc <- function(addTo, modelTag = NULL, time = FALSE) {
       dplyr::mutate(TimeSingle = Time / 60 / TuneLength) %>%
       dplyr::mutate(TimeTotal = Time / 60)
 
-    timeAccbyModel <- tableROC %>% dplyr::group_by(Model) %>%
-      dplyr::summarize(Time = mean(Time), ROC = mean(ROC, na.rm = TRUE),
-                       TimeSingle = mean(TimeSingle), TimeTotal = mean(TimeTotal)
-                       )
-
     perf_ROC <- ggplot(data = tableROC, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = ROC)) +
       geom_boxplot(alpha = 0.8) +
       xlab("") + ylab("") +
@@ -621,17 +595,10 @@ suggest_auc <- function(addTo, modelTag = NULL, time = FALSE) {
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
-    time_sig <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = TimeSingle)) +
+    time_sig <- ggplot(data = tableROC, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = TimeSingle)) +
       geom_bar(stat = "identity", alpha = 0.8) +
       xlab("") + ylab("") +
       ggtitle("Time/Tuning (min)") +
-      theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-      coord_flip()
-
-    time_ToT <- ggplot(data = timeAccbyModel, mapping = aes(x = reorder(Model, ROC, FUN = stats::median), y = TimeTotal)) +
-      geom_bar(stat = "identity", alpha = 0.8) +
-      xlab("") + ylab("") +
-      ggtitle("Time Total (min)") +
       theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
       coord_flip()
 
@@ -676,8 +643,6 @@ suggest_auc <- function(addTo, modelTag = NULL, time = FALSE) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_category <- function(addTo, modelTag = NULL) {
-  ##### created by younggun
-
   `.` <- median <- Method <- Tag <- Accuracy <- ROC <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -789,8 +754,6 @@ suggest_category <- function(addTo, modelTag = NULL) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_variable <- function(addTo, modelTag = NULL, sep = FALSE) {
-  ##### created by younggun
-
   `.` <- varImp <- Variables <- variableImportance <- median <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -893,8 +856,6 @@ suggest_variable <- function(addTo, modelTag = NULL, sep = FALSE) {
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_probPop <- function(addTo, outChar, predTag = "pred_test", modelTag = NULL) {
-  ##### created by younggun
-
   `.` <- obs <- population <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -963,8 +924,6 @@ suggest_probPop <- function(addTo, outChar, predTag = "pred_test", modelTag = NU
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_probCut <- function(addTo, outChar, predTag = "pred_test", modelTag = NULL) {
-  ##### created by younggun
-
   `.` <- probCut <- obs <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
@@ -1039,8 +998,6 @@ suggest_probCut <- function(addTo, outChar, predTag = "pred_test", modelTag = NU
 #' # vignette("modeval") #check a vignette for further details
 #' }
 suggest_gain <- function(addTo, outChar, predTag = "pred_test", modelTag = NULL, cuts = 51, type = NULL) {
-  ##### created by younggun
-
   `.` <- obs <- bucket <- model <- nTotal <- n <- event <- eventCum <- nCum <- pctCum <- lift <- pct <- NULL # for CMD check pass
   
   stopifnot(purrr::is_list(addTo),
